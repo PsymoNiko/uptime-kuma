@@ -1,20 +1,26 @@
-FROM node:lts-alpine3.19
-
-ENV NODE_ENV=production \
-    NPM_CONFIG_LOGLEVEL=warn
-
+FROM node:lts-alpine3.19 AS base
 WORKDIR /app
 
+# Install dependencies in a separate stage for better caching
+FROM base AS deps
 COPY package*.json ./
+RUN npm ci --only=production
 
-RUN npm ci --only=production && \
-    npm cache clean --force
 
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-EXPOSE 3001
+# If you have a build step (like React, Next.js, etc.), uncomment:
+# RUN npm run build
 
-RUN addgroup -S kuma && adduser -S kuma -G kuma
-USER kuma
+FROM node:lts-alpine3.19 AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 
-CMD [ "npm", "run", "start" ]
+COPY --from=build /app ./
+
+EXPOSE 3000
+
+# Run the app
+CMD ["npm", "start"]
