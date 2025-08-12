@@ -1,2 +1,5 @@
 /uptime-kuma
 .env
+.idae/
+.qodo
+__pycache__/
